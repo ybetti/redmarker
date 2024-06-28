@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PThelper</title>
+  <style>
+    #canvas {
+      border: 1px solid black;
+      cursor: crosshair; /* カーソルを十字に変更 */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    let isDrawing = false;
+    let startX, startY, endX, endY;
+
+    // ページ読み込み時に初期化処理
+    document.addEventListener('DOMContentLoaded', function() {
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', drawSelection);
+      canvas.addEventListener('mouseup', endDrawing);
+    });
+
+    function startDrawing(event) {
+      isDrawing = true;
+      startX = event.offsetX;
+      startY = event.offsetY;
+    }
+
+    function drawSelection(event) {
+      if (!isDrawing) return;
+      endX = event.offsetX;
+      endY = event.offsetY;
+
+      // Canvasをクリアして範囲を再描画
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = 'black';
+      context.lineWidth = 2;
+      context.strokeRect(startX, startY, endX - startX, endY - startY);
+    }
+
+    function endDrawing() {
+      isDrawing = false;
+      detectRedPixels(startX, startY, endX - startX, endY - startY);
+    }
+
+    function detectRedPixels(x, y, width, height) {
+      const imageData = context.getImageData(x, y, width, height);
+      const data = imageData.data;
+      const redPixels = [];
+
+      for (let i = 0; i < data.length; i += 4) {
+        const red = data[i];
+        const green = data[i + 1];
+        const blue = data[i + 2];
+
+        if (red > 90 && red > green * 1.4 && red > blue * 1.4) {
+          const pixelX = (i / 4) % width + x;
+          const pixelY = Math.floor((i / 4) / width) + y;
+          redPixels.push({ x: pixelX, y: pixelY });
+        }
+      }
+
+      drawMarkers(redPixels);
+    }
+
+    function drawMarkers(pixels) {
+      context.strokeStyle = 'lightgreen';
+      context.lineWidth = 4;
+
+      pixels.forEach(pixel => {
+        context.beginPath();
+        context.arc(pixel.x, pixel.y, 8, 0, 2 * Math.PI);
+        context.stroke();
+      });
+    }
+  </script>
+</body>
+</html>
